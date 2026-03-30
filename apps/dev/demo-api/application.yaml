@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-api-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/clem-drd/idp-platform
+    targetRevision: HEAD
+    path: helm/app-template
+    helm:
+      values: |
+        image:
+          repository: ghcr.io/clem-drd/idp-platform/demo-api
+          tag: "main"
+        service:
+          type: ClusterIP
+          port: 80
+          targetPort: 8000
+        replicaCount: 1
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        probes:
+          liveness:
+            path: /health
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readiness:
+            path: /health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
